@@ -5,7 +5,6 @@ namespace NatsStreaming;
 
 use Exception;
 use Nats\Message;
-use Nats\Php71RandomGenerator;
 use NatsStreaming\Exceptions\ConnectException;
 use NatsStreaming\Exceptions\DisconnectException;
 use NatsStreaming\Exceptions\SubscribeException;
@@ -17,7 +16,6 @@ use NatsStreamingProtos\CloseResponse;
 use NatsStreamingProtos\ConnectRequest;
 use NatsStreamingProtos\ConnectResponse;
 use NatsStreamingProtos\PubMsg;
-use RandomLib\Factory;
 
 class Connection
 {
@@ -31,11 +29,6 @@ class Connection
      * @var ConnectionOptions
      */
     public $options;
-
-    /**
-     * @var \RandomLib\Generator
-     */
-    private $randomGenerator;
 
     /**
      * @var string
@@ -112,14 +105,7 @@ class Connection
             $options = new ConnectionOptions();
         }
 
-        $this->options  = $options;
-
-        if (version_compare(phpversion(), '7.0', '>') === true) {
-            $this->randomGenerator = new Php71RandomGenerator();
-        } else {
-            $randomFactory         = new Factory();
-            $this->randomGenerator = $randomFactory->getLowStrengthGenerator();
-        }
+        $this->options = $options;
 
         $this->natsCon = new \Nats\Connection($this->options->getNatsOptions());
     }
@@ -203,12 +189,13 @@ class Connection
      * @param $subject
      * @param $data
      * @return TrackedNatsRequest
+     * @throws \Exception
      */
     public function publish($subject, $data)
     {
 
         $natsSubject = $this->pubPrefix . '.' . $subject;
-        $peGUID = $this->randomGenerator->generateString(self::UID_LENGTH);
+        $peGUID = bin2hex(random_bytes(self::UID_LENGTH));
 
         $req = new PubMsg();
         $req->setClientID($this->options->getClientID());

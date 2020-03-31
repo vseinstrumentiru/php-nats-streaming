@@ -343,13 +343,13 @@ class Subscription
         return $msgsDone;
     }
 
-    public function wait($messages = 1)
+    public function wait($messages = 1, $timeout = 0)
     {
 
 
         $msgsDone = $this->dispatchCachedMessages($messages);
 
-
+        $timeoutThreshold = $timeout ? $timeout + time() : 0;
         $this->active = true;
 
         if ($msgsDone < $messages) {
@@ -360,7 +360,7 @@ class Subscription
             while (NatsHelper::socketInGoodHealth($this->stanCon->natsCon()) && $this->active) {
                 $this->stanCon->natsCon()->wait(1);
 
-                if ($this->processedMessages >= $quota) {
+                if ($this->processedMessages >= $quota || (($timeoutThreshold > 0) && ($timeoutThreshold < time()))) {
                     break;
                 }
             }
